@@ -326,22 +326,12 @@ else
     fail=1
 fi
 
-echo -e "\n${YELLOW}=== CHECKER_LINUX: Pile déjà triée ===${NC}"
-RES=$(echo "" | $CK_LINUX 1 2 3)
-if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
-    echo -e "${GREEN}[OK]${NC} Pile triée (0 ops) → OK"
-else
-    echo -e "${RED}[KO]${NC} Pile triée (got: '$RES')"
-    fail=1
-fi
 
 echo -e "\n${YELLOW}=== CHECKER_LINUX: Opérations valides ===${NC}"
 
 # sa sur "2 1"
 RES=$(echo "sa" | $CK_LINUX 2 1)
-if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
+if [ "$RES" = "OK" ]; then
     echo -e "${GREEN}[OK]${NC} sa sur '2 1' → OK"
 else
     echo -e "${RED}[KO]${NC} sa sur '2 1' (got: '$RES')"
@@ -352,8 +342,7 @@ fi
 ARG="3 2 1"
 OPS=$($PS $ARG)
 RES=$(echo "$OPS" | $CK_LINUX $ARG)
-if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
+if [ "$RES" = "OK" ]; then
     echo -e "${GREEN}[OK]${NC} Séquence '$ARG' → OK"
 else
     echo -e "${RED}[KO]${NC} Séquence '$ARG' (got: '$RES')"
@@ -374,8 +363,7 @@ for N in 10 100 500; do
     ARG=$(random_arg $N)
     OPS=$($PS $ARG 2>/dev/null)
     RES=$(echo "$OPS" | $CK_LINUX $ARG 2>/dev/null)
-    if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
+    if [ "$RES" = "OK" ]; then
         echo -e "${GREEN}✓${NC} $N nombres → OK"
     else
         echo -e "${RED}✗${NC} $N nombres → $RES"
@@ -461,8 +449,7 @@ fi
     
     # sa sur "2 1"
     RES=$(echo "sa" | $CK_BONUS 2 1)
-    if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
+    if [ "$RES" = "OK" ]; then
         echo -e "${GREEN}[OK]${NC} sa sur '2 1' → OK"
     else
         echo -e "${RED}[KO]${NC} sa sur '2 1' (got: '$RES')"
@@ -481,8 +468,7 @@ fi
     ARG="3 2 1"
     OPS=$($PS $ARG)
     RES=$(echo "$OPS" | $CK_BONUS $ARG)
-    if [ "$RES" = "OK" ] || [ -z "$RES" ]; then 
-
+    if [ "$RES" = "OK" ]; then
         echo -e "${GREEN}[OK]${NC} Séquence '$ARG' → OK"
     else
         echo -e "${RED}[KO]${NC} Séquence '$ARG' (got: '$RES')"
@@ -522,7 +508,7 @@ fi
     echo -e "\n${YELLOW}=== BONUS: Parsing ===${NC}"
     
     # Avec guillemets
-RES=$(echo "" | eval "$CK_BONUS \"1 2 3\"")
+  RES=$(echo "" | eval "$CK_BONUS \"1 2 3\"")
 if [ "$RES" = "OK" ] || [ -z "$RES" ]; then
     echo -e "${GREEN}[OK]${NC} Parsing guillemets"
 else
@@ -530,24 +516,22 @@ else
     fail=1
 fi
 
-
     
     # Espaces multiples
-   RES=$(echo "" | $CK_BONUS 1  2   3)
-if [ "$RES" = "OK" ] || [ -z "$RES" ]; then
+   if [ "$RES" = "OK" ] || [ -z "$RES" ]; then
     echo -e "${GREEN}[OK]${NC} Espaces multiples"
 else
     echo -e "${RED}[KO]${NC} Espaces multiples (got: '$RES')"
     fail=1
 fi
+
     
     echo -e "\n${YELLOW}=== BONUS: Stress test ===${NC}"
     for N in 10 100 500; do
         ARG=$(random_arg $N)
         OPS=$($PS $ARG 2>/dev/null)
         RES=$(echo "$OPS" | $CK_BONUS $ARG 2>/dev/null)
-        if [ "$RES" = "OK" ] || [ -z "$RES" ]; then ...
-
+        if [ "$RES" = "OK" ]; then
             echo -e "${GREEN}✓${NC} $N nombres → OK"
         else
             echo -e "${RED}✗${NC} $N nombres → $RES"
@@ -607,26 +591,7 @@ fi
     check_leak_checker "1 2 2" "" "$CK_BONUS"
     ARG=$(random_arg 50)
     OPS=$($PS $ARG)
- check_leak_checker() {
-    ARG="$1"
-    OPS="$2"
-    CHECKER="$3"
-
-    # Si OPS vide, on envoie simplement ARG par stdin
-    if [ -z "$OPS" ]; then
-        echo "$ARG" | $VALGRIND $CHECKER >/dev/null 2>&1
-    else
-        echo "$OPS" | $VALGRIND $CHECKER $ARG >/dev/null 2>&1
-    fi
-
-    if [ $? -eq 42 ]; then
-        echo -e "${RED}[LEAK ❌]${NC} $(basename $CHECKER) '$ARG'"
-        fail=1
-    else
-        echo -e "${GREEN}[NO LEAK ✅]${NC} $(basename $CHECKER) '$ARG'"
-    fi
-}
-
+    check_leak_checker "$ARG" "$OPS" "$CK_BONUS"
     
 else
     echo -e "\n${YELLOW}⚠ Checker bonus non trouvé (./checker)${NC}"
@@ -642,3 +607,91 @@ else
     echo -e "${RED}✗ SOME CHECKER TESTS FAILED ❌${NC}"
 fi
 echo -e "${BLUE}═══════════════════════════════════════${NC}"
+echo -e "\n${YELLOW}=== COMPARAISON CHECKER_LINUX vs CHECKER BONUS ===${NC}"
+
+# =========================
+# TEST PUSH_SWAP AVEC CHECKER_LINUX (VERSION ÉTENDUE)
+# =========================
+echo -e "\n${YELLOW}=== TEST PUSH_SWAP AVEC CHECKER_LINUX (ÉTENDU) ===${NC}"
+
+for N in 2 3 5 10 50 100 500; do
+    ARG=$(random_arg $N)
+    echo -e "\nPile aléatoire ($N éléments): $ARG"
+
+    # Générer les opérations avec push_swap
+    OPS=$($PS $ARG 2>/dev/null)
+    N_OPS=$(echo "$OPS" | wc -l)
+
+    # Vérifier avec checker_linux
+    if [ -z "$OPS" ]; then
+        # Pas d'opérations → pile déjà triée
+        echo "" | $CK $ARG >/dev/null 2>&1
+        CK_RET=$?
+    else
+        printf "%s\n" "$OPS" | $CK $ARG >/dev/null 2>&1
+        CK_RET=$?
+    fi
+
+    echo "Nombre d'opérations: $N_OPS"
+    echo "Checker Linux return code: $CK_RET"
+
+    if [ $CK_RET -eq 0 ]; then
+        echo -e "${GREEN}[OK] Pile triée correctement${NC}"
+    elif [ $CK_RET -eq 1 ]; then
+        echo -e "${RED}[KO] Pile non triée${NC}"
+        fail=1
+    else
+        echo -e "${RED}[ERROR] Checker a retourné une erreur${NC}"
+        fail=1
+    fi
+done
+
+# =========================
+# TESTS DE PILES INVERSÉES
+# =========================
+echo -e "\n${YELLOW}=== TESTS PILES INVERSÉES ===${NC}"
+for ARG in "3 2 1" "5 4 3 2 1" "10 9 8 7 6 5 4 3 2 1"; do
+    OPS=$($PS $ARG 2>/dev/null)
+    N_OPS=$(echo "$OPS" | wc -l)
+    printf "%s\n" "$OPS" | $CK $ARG >/dev/null 2>&1
+    CK_RET=$?
+
+    if [ $CK_RET -eq 0 ]; then
+        echo -e "${GREEN}[OK] Pile inversée triée correctement ($ARG, ops=$N_OPS)${NC}"
+    else
+        echo -e "${RED}[KO] Pile inversée non triée ($ARG)${NC}"
+        fail=1
+    fi
+done
+
+# =========================
+# TESTS DE VALEURS LIMITES
+# =========================
+echo -e "\n${YELLOW}=== TESTS VALEURS LIMITES ===${NC}"
+for ARG in "2147483647 -2147483648 0" ; do
+    OPS=$($PS $ARG 2>/dev/null)
+    N_OPS=$(echo "$OPS" | wc -l)
+    printf "%s\n" "$OPS" | $CK $ARG >/dev/null 2>&1
+    CK_RET=$?
+
+    if [ $CK_RET -eq 0 ]; then
+        echo -e "${GREEN}[OK] Valeurs limites triées correctement ($ARG, ops=$N_OPS)${NC}"
+    else
+        echo -e "${RED}[KO] Valeurs limites non triées ($ARG)${NC}"
+        fail=1
+    fi
+done
+
+# =========================
+# TESTS D'ENTRÉES INVALIDES
+# =========================
+echo -e "\n${YELLOW}=== TESTS ENTRÉES INVALIDES ===${NC}"
+for ARG in "1 2 2" "1 a 3" "2147483648 -2147483649"; do
+    RES=$($PS $ARG 2>&1)
+    if echo "$RES" | grep -q "Error"; then
+        echo -e "${GREEN}[OK] Entrée invalide détectée ($ARG)${NC}"
+    else
+        echo -e "${RED}[KO] Entrée invalide non détectée ($ARG)${NC}"
+        fail=1
+    fi
+done

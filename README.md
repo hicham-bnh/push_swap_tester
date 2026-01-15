@@ -37,10 +37,12 @@ Welcome to the dazzling, battle-tested Push_Swap Test Suite — a polished, auto
 1. Make sure your programs are compiled:
    - `push_swap` (the generator of operations)
    - `checker` (or optional `checker_bonus`)
+   - `checker_linux`
 
 2. Make the test script executable:
 ```bash
 chmod +x test_push_swap.sh
+chmod +x checker_linux
 ```
 
 3. Run the full test suite:
