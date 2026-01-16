@@ -34,6 +34,10 @@ Welcome to the dazzling, battle-tested Push_Swap Test Suite — a polished, auto
 
 ## Quick start (3 steps)
 
+```bash
+git clone git@github.com:hicham-bnh/push_swap_tester.git
+```
+
 1. Make sure your programs are compiled:
    - `push_swap` (the generator of operations)
    - `checker` (or optional `checker_bonus`)
