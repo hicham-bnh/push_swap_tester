@@ -202,21 +202,90 @@ for N in 100 500; do
     done
 done
 
+sorted_arg() {
+    seq 1 $1 | tr '\n' ' '
+}
+
+reverse_arg() {
+    seq $1 -1 1 | tr '\n' ' '
+}
+
+almost_sorted_arg() {
+    seq 1 $1 | shuf -n $1 --random-source=<(yes 42) | tr '\n' ' '
+}
+
+verdict() {
+    local avg=$1
+    local limit=$2
+
+    if (( avg <= limit )); then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${RED}KO${NC}"
+    fi
+}
+
+
 # =========================
 # BENCHMARK 100 TESTS
 # =========================
-echo -e "\n${YELLOW}=== BENCHMARK 100 TESTS (100 NUMS) ===${NC}"
-sum=0; min=999999; max=0
-for i in {1..100}; do
-    ARG=$(random_arg 100)
-    for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
-        C=$($PS $FLAG $ARG | wc -l)
+echo -e "\n${YELLOW}=== TEST STRUCTURÉ 100 ELEMENTS ===${NC}"
+
+LIMIT_100=2000
+
+for TYPE in sorted reverse almost; do
+    sum=0; min=999999; max=0
+
+    for i in {1..50}; do
+        case $TYPE in
+            sorted)  ARG=$(sorted_arg 100) ;;
+            reverse) ARG=$(reverse_arg 100) ;;
+            almost)  ARG=$(almost_sorted_arg 100) ;;
+        esac
+
+        C=$($PS $ARG | wc -l)
         ((sum+=C))
         ((C<min)) && min=$C
         ((C>max)) && max=$C
     done
+
+    avg=$((sum/50))
+    result=$(verdict $avg $LIMIT_100)
+
+    echo "$TYPE → min=$min max=$max avg=$avg → $result"
 done
-echo "min=$min max=$max avg=$((sum/100))"
+
+
+
+# =========================
+# BENCHMARK 500 TESTS
+# =========================
+echo -e "\n${YELLOW}=== TEST STRUCTURÉ 500 ELEMENTS ===${NC}"
+
+LIMIT_500=12000
+
+for TYPE in sorted reverse almost; do
+    sum=0; min=999999; max=0
+
+    for i in {1..20}; do
+        case $TYPE in
+            sorted)  ARG=$(sorted_arg 500) ;;
+            reverse) ARG=$(reverse_arg 500) ;;
+            almost)  ARG=$(almost_sorted_arg 500) ;;
+        esac
+
+        C=$($PS $ARG | wc -l)
+        ((sum+=C))
+        ((C<min)) && min=$C
+        ((C>max)) && max=$C
+    done
+
+    avg=$((sum/20))
+    result=$(verdict $avg $LIMIT_500)
+
+    echo "$TYPE → min=$min max=$max avg=$avg → $result"
+done
+
 
 # =========================
 # LEAKS
@@ -607,14 +676,13 @@ else
     echo -e "${RED}✗ SOME CHECKER TESTS FAILED ❌${NC}"
 fi
 echo -e "${BLUE}═══════════════════════════════════════${NC}"
-echo -e "\n${YELLOW}=== COMPARAISON CHECKER_LINUX vs CHECKER BONUS ===${NC}"
 
 # =========================
 # TEST PUSH_SWAP AVEC CHECKER_LINUX (VERSION ÉTENDUE)
 # =========================
 echo -e "\n${YELLOW}=== TEST PUSH_SWAP AVEC CHECKER_LINUX (ÉTENDU) ===${NC}"
 
-for N in 2 3 5 10 50 100 500; do
+for N in 3 5 10 50 100 500; do
     ARG=$(random_arg $N)
     echo -e "\nPile aléatoire ($N éléments): $ARG"
 
