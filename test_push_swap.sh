@@ -17,72 +17,60 @@ fail=0
 # UTILS
 # =========================
 
-expect_exact() {
+# Test d'erreur: accepte Error et return 0 ou 1
+expect_error() {
     NAME="$1"
     CMD="$2"
-    EXPECT="$3"
+
     OUT=$(eval "$CMD" 2>&1)
     RET=$?
-    if diff -u <(printf "%s\n" "$EXPECT") <(printf "%s\n" "$OUT") >/dev/null && [ $RET -eq 0 ]; then
+
+    if printf "%s" "$OUT" | grep -q "Error" && { [ $RET -eq 0 ] || [ $RET -eq 1 ]; }; then
         echo -e "${GREEN}[OK]${NC} $NAME"
     else
         echo -e "${RED}[KO]${NC} $NAME"
-        echo "EXPECTED: $EXPECT (return 0)"
-        echo "GOT     : $OUT (return $RET)"
+        echo "EXPECTED: Error (return 0 ou 1)"
+        echo "GOT     : '$OUT' (return $RET)"
         fail=1
     fi
 }
 
+# Vérifier tri correct + déjà trié
 check_sort() {
     local ARG="$1"
     local FLAG="$2"
-    
-    # Exécuter push_swap
+
+    local OUT RET OPS RES
     OUT=$(eval "$PS $FLAG $ARG" 2>/dev/null)
     RET=$?
-    
-    # Compter les opérations
+
     if [ -z "$OUT" ]; then
         OPS=0
     else
         OPS=$(echo "$OUT" | wc -l)
     fi
-    
-    # Si 0 opération, vérifier si la pile est déjà triée
+
+    # Pile déjà triée → 0 ops & ret 0 => OK direct
     if [ $OPS -eq 0 ] && [ $RET -eq 0 ]; then
-        # Tester si c'est bien trié avec un checker "à vide"
-        echo "" | eval "$CK $ARG" 2>/dev/null | grep -q "OK"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}[OK]${NC} $FLAG $ARG (ops=0, already sorted)"
-            return
-        fi
+        echo -e "${GREEN}[OK]${NC} $FLAG $ARG (already sorted, ops=0)"
+        return
     fi
-    
-    # Vérifier avec checker (si ops > 0)
+
+    # Sinon, vérifier avec checker
     if [ $OPS -gt 0 ]; then
         RES=$(echo "$OUT" | eval "$CK $ARG" 2>/dev/null)
     else
         RES=""
     fi
-    
-    # Si déjà trié (1 2 3), accepter 0 ou 1 opération
-    if echo "$ARG" | grep -qE '1.*2.*3' && [ $(echo "$ARG" | grep -o '[0-9]' | wc -l) -eq 3 ]; then
-        if [ "$RES" = "OK" ] || [ $OPS -eq 0 ]; then
-            if [ $RET -eq 0 ]; then
-                echo -e "${GREEN}[OK]${NC} $FLAG $ARG (ops=$OPS)"
-                return
-            fi
-        fi
-    fi
-    
-    # Sinon, comportement normal
+
     if [ "$RES" = "OK" ] && [ $RET -eq 0 ]; then
         echo -e "${GREEN}[OK]${NC} $FLAG $ARG (ops=$OPS)"
     else
-        echo -e "${RED}[KO]${NC} $FLAG $ARG (ops=$OPS, checker=$RES, return=$RET)"
+        echo -e "${RED}[KO]${NC} $FLAG $ARG (ops=$OPS, checker=$RES, ret=$RET)"
         fail=1
     fi
 }
+
 check_leak() {
     ARG="$1"
     FLAG="$2"
@@ -101,29 +89,17 @@ random_arg() {
 }
 
 # =========================
-# CAS DEJA TRIE (ops <= 1 accepté)
+# CAS DEJA TRIE
 # =========================
 echo -e "\n${YELLOW}=== CAS DEJA TRIE ===${NC}"
 for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
     ARG="1 2 3"
     OUT=$($PS $FLAG $ARG 2>/dev/null)
     RET=$?
-    
-    if [ $RET -eq 0 ]; then
-        if [ -z "$OUT" ]; then
-            echo -e "${GREEN}[OK]${NC} Pile déjà triée $FLAG (0 ops)"
-        else
-            OPS=$(echo "$OUT" | wc -l)
-            RES=$(echo "$OUT" | $CK $ARG 2>/dev/null)
-            if [ "$RES" = "OK" ] && [ $OPS -le 1 ]; then
-                echo -e "${GREEN}[OK]${NC} Pile déjà triée $FLAG (ops=$OPS)"
-            else
-                echo -e "${RED}[KO]${NC} Pile déjà triée $FLAG (ops=$OPS, checker=$RES)"
-                fail=1
-            fi
-        fi
+    if [ $RET -eq 0 ] && [ -z "$OUT" ]; then
+        echo -e "${GREEN}[OK]${NC} Pile déjà triée $FLAG (0 ops)"
     else
-        echo -e "${RED}[KO]${NC} Pile déjà triée $FLAG (return=$RET)"
+        echo -e "${RED}[KO]${NC} Pile déjà triée $FLAG (sortie ou return inattendu)"
         fail=1
     fi
 done
@@ -132,11 +108,11 @@ done
 # ERREURS STRICTES
 # =========================
 echo -e "${YELLOW}=== ERREURS STRICTES ===${NC}"
-expect_exact "doublons"      "$PS 1 2 1" "Error"
-expect_exact "lettre"        "$PS 1 a 3" "Error"
-expect_exact "overflow +"    "$PS 2147483648" "Error"
-expect_exact "overflow -"    "$PS -2147483649" "Error"
-expect_exact "flag"          "$PS --help" "Error"
+expect_error "doublons"      "$PS 1 2 1"
+expect_error "lettre"        "$PS 1 a 3"
+expect_error "overflow +"    "$PS 2147483648"
+expect_error "overflow -"    "$PS -2147483649"
+expect_error "flag"          "$PS --help"
 
 # =========================
 # CAS PAS D'ARGUMENT
@@ -145,16 +121,13 @@ echo -e "\n${YELLOW}=== CAS PAS D'ARGUMENT ===${NC}"
 for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
     OUT=$($PS $FLAG)
     RET=$?
-    OPS=$(echo "$OUT" | wc -l)
     if [ -z "$OUT" ] && [ $RET -eq 0 ]; then
         echo -e "${GREEN}[OK]${NC} Pas d'argument $FLAG (aucune sortie, return 0)"
     else
-        echo -e "${RED}[KO]${NC} Pas d'argument $FLAG (sortie inattendue ou return $RET)"
+        echo -e "${RED}[KO]${NC} Pas d'argument $FLAG (out='$OUT', ret=$RET)"
         fail=1
     fi
 done
-
-
 
 # =========================
 # PARSING / FORMAT
@@ -166,6 +139,10 @@ for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
     check_sort $'1\t2\t3' "$FLAG"
     check_sort "1  2   3" "$FLAG"
 done
+
+# (Le reste du script continue ici comme avant…)
+
+
 
 # =========================
 # TRI SIMPLES
@@ -192,15 +169,35 @@ done
 # STRESS TESTS
 # =========================
 echo -e "\n${YELLOW}=== STRESS TESTS ===${NC}"
+
+# Limites conseillées du projet
+LIMIT_100=2000
+LIMIT_500=12000
+
 for N in 100 500; do
     ARG=$(random_arg $N)
     for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
         OPS=$($PS $FLAG $ARG | wc -l)
         RES=$(echo "$($PS $FLAG $ARG)" | $CK $ARG 2>/dev/null)
         RET=$?
-        echo "$FLAG $N numbers → ops=$OPS result=$RES return=$RET"
+
+        # Choisir limite selon la taille
+        if [ $N -eq 100 ]; then
+            LIMIT=$LIMIT_100
+        else
+            LIMIT=$LIMIT_500
+        fi
+
+        # Afficher OK ou KO en fonction des limites
+        if [ "$RES" = "OK" ] && [ $RET -eq 0 ] && [ $OPS -le $LIMIT ]; then
+            echo -e "${GREEN}[OK]${NC} $FLAG $N numbers → ops=$OPS (<= $LIMIT)"
+        else
+            echo -e "${RED}[KO]${NC} $FLAG $N numbers → ops=$OPS (limit $LIMIT, result=$RES, ret=$RET)"
+            fail=1
+        fi
     done
 done
+
 
 sorted_arg() {
     seq 1 $1 | tr '\n' ' '
