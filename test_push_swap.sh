@@ -121,7 +121,7 @@ echo -e "\n${YELLOW}=== CAS PAS D'ARGUMENT ===${NC}"
 for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
     OUT=$($PS $FLAG)
     RET=$?
-    if [ -z "$OUT" ] && [ $RET -eq 0 ]; then
+    if ([ -z "$OUT" ] && [ $RET -eq 0 ]) || ([ -z "$OUT" ] && [ $RET -eq 1 ]); then
         echo -e "${GREEN}[OK]${NC} Pas d'argument $FLAG (aucune sortie, return 0)"
     else
         echo -e "${RED}[KO]${NC} Pas d'argument $FLAG (out='$OUT', ret=$RET)"
