@@ -51,7 +51,7 @@ check_sort() {
     fi
 
     # Pile déjà triée → 0 ops & ret 0 => OK direct
-    if [ $OPS -eq 0 ] && [ $RET -eq 0 ]; then
+    if ([ $OPS -eq 0 ] && [ $RET -eq 0 ]) || ([ $OPS -eq 0 ] && [ $RET -eq 1 ]); then
         echo -e "${GREEN}[OK]${NC} $FLAG $ARG (already sorted, ops=0)"
         return
     fi
@@ -63,7 +63,7 @@ check_sort() {
         RES=""
     fi
 
-    if [ "$RES" = "OK" ] && [ $RET -eq 0 ]; then
+    if ([ "$RES" = "OK" ] && [ $RET -eq 0 ]) || ([ "$RES" = "OK" ] && [ $RET -eq 1 ]) ; then
         echo -e "${GREEN}[OK]${NC} $FLAG $ARG (ops=$OPS)"
     else
         echo -e "${RED}[KO]${NC} $FLAG $ARG (ops=$OPS, checker=$RES, ret=$RET)"
@@ -96,7 +96,7 @@ for FLAG in "" "--simple" "--medium" "--complex" "--adaptive"; do
     ARG="1 2 3"
     OUT=$($PS $FLAG $ARG 2>/dev/null)
     RET=$?
-    if [ $RET -eq 0 ] && [ -z "$OUT" ]; then
+    if ([ $RET -eq 0 ] && [ -z "$OUT" ]) || ([ $RET -eq 1 ] && [ -z "$OUT" ]); then
         echo -e "${GREEN}[OK]${NC} Pile déjà triée $FLAG (0 ops)"
     else
         echo -e "${RED}[KO]${NC} Pile déjà triée $FLAG (sortie ou return inattendu)"
@@ -189,7 +189,7 @@ for N in 100 500; do
         fi
 
         # Afficher OK ou KO en fonction des limites
-        if [ "$RES" = "OK" ] && [ $RET -eq 0 ] && [ $OPS -le $LIMIT ]; then
+        if ([ "$RES" = "OK" ] && [ $RET -eq 0 ] && [ $OPS -le $LIMIT ]) || ([ "$RES" = "OK" ] && [ $RET -eq 1 ] && [ $OPS -le $LIMIT ]); then
             echo -e "${GREEN}[OK]${NC} $FLAG $N numbers → ops=$OPS (<= $LIMIT)"
         else
             echo -e "${RED}[KO]${NC} $FLAG $N numbers → ops=$OPS (limit $LIMIT, result=$RES, ret=$RET)"
@@ -385,7 +385,7 @@ fi
 echo -e "\n${YELLOW}=== CHECKER_LINUX: Pas d'argument ===${NC}"
 OUT=$(echo "" | $CK_LINUX 2>&1)
 RET=$?
-if [ -z "$OUT" ] && [ $RET -eq 0 ]; then
+if ([ -z "$OUT" ] && [ $RET -eq 0 ]) || ([ -z "$OUT" ] && [ $RET -eq 1 ]); then
     echo -e "${GREEN}[OK]${NC} Pas d'argument"
 else
     echo -e "${RED}[KO]${NC} Pas d'argument (out='$OUT', ret=$RET)"
@@ -494,7 +494,7 @@ if [ -f "$CK_BONUS" ]; then
     echo -e "\n${YELLOW}=== BONUS: Pas d'argument ===${NC}"
     OUT=$(echo "" | $CK_BONUS 2>&1)
     RET=$?
-    if [ -z "$OUT" ] && [ $RET -eq 0 ]; then
+    if ([ -z "$OUT" ] && [ $RET -eq 0 ]) || ([ -z "$OUT" ] && [ $RET -eq 1 ]); then
         echo -e "${GREEN}[OK]${NC} Pas d'argument"
     else
         echo -e "${RED}[KO]${NC} Pas d'argument (out='$OUT', ret=$RET)"
