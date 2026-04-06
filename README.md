@@ -142,33 +142,7 @@ echo "Result: $RES"  # -> KO
 
 Tip: use `printf` (not `echo`) to ensure each instruction ends with a newline — checkers expect newline-terminated commands.
 
----
 
-## CI integration (GitHub Actions example)
-
-Add this workflow to run tests on push / PRs (runs quickly for smaller sets; adjust for full stress tests or use matrix):
-
-```yaml
-name: push_swap-tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: |
-        make
-    - name: Run test suite
-      run: |
-        chmod +x test_push_swap.sh
-        ./test_push_swap.sh
-    - name: Valgrind (optional, slower)
-      run: |
-        ./test_push_swap.sh --memory-check
-```
-
-Adjust the workflow to install `valgrind` (`sudo apt-get install -y valgrind`) and to run heavier stress tests only on scheduled or manual runs to save CI minutes.
 
 ---
 
